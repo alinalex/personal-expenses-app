@@ -1,6 +1,8 @@
+import BankItem from '@/components/connectAccount/BankItem';
 import getBanksDataLogic from '@/logic/getBanksLogic';
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
+import Link from 'next/link';
 
 export default async function SelectBank({ params }: { params: { code: string } }) {
   const countryCode = params.code;
@@ -11,13 +13,11 @@ export default async function SelectBank({ params }: { params: { code: string } 
   return (
     <section className="px-6">
       <div className="mb-3">Select your bank</div>
-      {bankData && bankData.length > 0 ? bankData.map(bank =>
-        <div key={bank.id} className="cursor-pointer flex items-center py-4 border-b border-gray-300">
-          <img src={bank.logo} alt={bank.name} className="w-8 h-8 object-cover object-center rounded-md" />
-          <p className="ml-2">
-            {bank.name}
-          </p>
-        </div>) : <div>An error occured, please try again.</div>}
+      {bankData && bankData.length > 0 ?
+        bankData.map(bank => (
+          <Link href={`/dashboard/connect/bank/${countryCode}/${bank.id}`} key={bank.id}><BankItem bankItemData={bank} /></Link>
+        )) :
+        <div>An error occured, please try again.</div>}
     </section>
   )
 }
