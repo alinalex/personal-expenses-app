@@ -25,29 +25,38 @@ export default async function Dashboard({ searchParams }: { searchParams: { ref:
     }
   }
 
-  // const { data: accessTokens } = await supabase.from('access_tokens').select();
-  const { data: bankConnections } = await supabase.from('bank_connections').select('*').eq('user_id', userId);
-  // console.log('bankConnections', bankConnections);
+  const { data: bankConnections, error: bankConnectionsError } = await supabase.from('bank_connections').select(`id, bank_logo, bank_name, country_code, isDone, oauth_link, bank_accounts(*)`).eq('user_id', userId);
 
   return (
     <section className="w-full min-h-screen h-full">
       <div className="px-3">
         {
           bankConnections && bankConnections.length > 0 ?
-            (<div>
-              {bankConnections.map(bank => (
-                <div key={bank.id} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Image src={bank.bank_logo} alt="logo" width={32} height={32} />
-                    <p className="ml-2">{`${bank.bank_name} ${bank.country_code}`}</p>
-                  </div>
-                  <div>
-                    {bank.isDone ? <Button asChild><Link href={'/dashboard/accounts'}>View accounts</Link></Button> : <Button asChild><Link href={bank.oauth_link}>Continue connection</Link></Button>}
-                    <Button variant={'destructive'} className="ml-3">Delete connection</Button>
-                  </div>
+            (
+              <>
+                <div className="mb-4"><Button asChild><Link href='/dashboard/connect/add-country' className="p-4 mr-4">Connect a new account</Link></Button></div>
+                <div>
+                  {bankConnections.map(bank => (
+                    <div key={bank.id} className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <Image src={bank.bank_logo} alt="logo" width={32} height={32} />
+                        <p className="ml-2">{`${bank.bank_name} ${bank.country_code}`}</p>
+                      </div>
+                      <div>
+                        {
+                          !bank.isDone ?
+                            <Button asChild><Link href={bank.oauth_link}>Continue connection</Link></Button> : (
+                              bank.bank_accounts.length > 0 ?
+                                <Button asChild><Link href={`/dashboard/accounts/${bank.id}`}>View accounts</Link></Button> : <Button asChild><Link href={`/dashboard/connect/accounts/${bank.id}`}>Retrieve accounts for this connections</Link></Button>
+                            )
+                        }
+                        <Button variant={'destructive'} className="ml-3">Delete connection</Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>) :
+              </>
+            ) :
             (<div>
               <p>So empty here. Start by connecting a bank account</p>
               <div><Button asChild><Link href='/dashboard/connect/add-country' className="p-4 mr-4">Start connecting an account</Link></Button></div>
