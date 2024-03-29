@@ -95,7 +95,7 @@ export default async function AccountPage({ params, searchParams }: { params: { 
             </div>
             : (
               <div>
-                <p className="mb-2">It looks you don't have any transactions. Click the button below to retrieve them.</p>
+                <p className="mb-2">It looks you don&apos;t have any transactions. Click the button below to retrieve them.</p>
                 <div><Button asChild><Link href={`/dashboard/accounts/${connectionId}/${accountId}/retrieve`} className="p-4 mr-4">Retrive transactions</Link></Button></div>
               </div>
             )
