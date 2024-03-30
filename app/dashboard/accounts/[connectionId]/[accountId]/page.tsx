@@ -20,7 +20,7 @@ export default async function AccountPage({ params, searchParams }: { params: { 
   let year_month = searchParams.year_month;
   let section = searchParams.section;
 
-  const { data: yearMonthDdata, error: yearMonthError } = await supabase.from('expenses_totals').select('*').order('year_month', { ascending: false });
+  const { data: yearMonthDdata, error: yearMonthError } = await supabase.from('expenses_totals').select('*').eq('account_id', accountId).order('year_month', { ascending: false });
 
   if (typeof year_month === 'undefined') {
     if (!yearMonthError && yearMonthDdata && yearMonthDdata.length > 0) {
@@ -38,9 +38,11 @@ export default async function AccountPage({ params, searchParams }: { params: { 
   let transactions: any[] = [], outer, inner, totalExpenses;
   if (section === 'expenses') {
     const { data: expensesData, error: expensesError } = await supabase.from('expenses_totals').select('*').eq('year_month', year_month);
-    outer = expensesData && expensesData[0].outer;
-    inner = expensesData && expensesData[0].inner;
-    totalExpenses = expensesData && expensesData[0].total;
+    if (expensesData && expensesData.length > 0) {
+      outer = expensesData[0].outer;
+      inner = expensesData[0].inner;
+      totalExpenses = expensesData[0].total;
+    }
   } else {
     const date = new Date(year_month);
     const year = date.getFullYear();

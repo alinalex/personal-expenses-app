@@ -4,15 +4,21 @@ import { formatDateForApi } from '@/logic/retrieveTransactionsLogic';
 import getAccountTransactions from '@/utils/bank-connect/getAccountTransactions';
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
+import { withAxiom, AxiomRequest } from 'next-axiom';
 
-export async function GET() {
+export const GET = withAxiom(async (req: AxiomRequest) => {
   const cookieStore = cookies();
   const supabase = createClient(cookieStore);
+
+  req.log.info('cron started');
 
   // get bank accounts that are eligible for cron
   const { data: bankAccounts, error: bankAccountsError } = await supabase.from('bank_accounts').select(`*`).eq('isCron', true);
 
-  if (bankAccountsError || (bankAccounts && bankAccounts.length === 0)) return Response.json({ data: null, status: 400 });
+  if (bankAccountsError || (bankAccounts && bankAccounts.length === 0)) {
+    req.log.error('no bank accounts', { code: '400', message: bankAccountsError });
+    return Response.json({ data: null, status: 400 });
+  }
 
   // get last day of bank transactions
   const accountId = bankAccounts[0].id;
@@ -21,7 +27,10 @@ export async function GET() {
     ('account_transactions').select(`*`).eq('account_id', accountId).order('booking_date', { ascending: false })
     .limit(1);
 
-  if (accountTransactionsError || (accountTransactions && accountTransactions.length === 0)) return Response.json({ data: null, status: 400 });
+  if (accountTransactionsError || (accountTransactions && accountTransactions.length === 0)) {
+    req.log.error('no account transactions', { code: '400', message: accountTransactionsError });
+    return Response.json({ data: null, status: 400 });
+  }
 
   // get transactions
   const bookingDate = accountTransactions[0].booking_date;
@@ -33,21 +42,32 @@ export async function GET() {
   dateTo.setDate(dateTo.getDate() - 1);
   dateTo = await formatDateForApi({ date: dateTo.toString() });
 
-  if (new Date(dateFrom) > new Date(dateTo)) return Response.json({ data: 'already have the data', status: 400 });
+  if (new Date(dateFrom) > new Date(dateTo)) {
+    req.log.error(`date from (${dateFrom}) is bigger than date to (${dateTo})`, { code: '400', message: 'date error' });
+    return Response.json({ data: 'already have the data', status: 400 });
+  }
 
   let { accessToken, refreshToken, id } = await retrieveAccessToken({ supabase });
-  if (!accessToken) return Response.json({ data: 'an error with access token occured', status: 400 });
+  if (!accessToken) {
+    req.log.error('no accessToken', { code: '400', message: 'an error with access token occured line 52' });
+    return Response.json({ data: 'an error with access token occured', status: 400 });
+  }
 
   let transactionsData = await getAccountTransactions({ accountId: accountUuId, accessToken, dateFrom, dateTo });
-  if (!transactionsData.status && !transactionsData.data.hasOwnProperty('status_code')) return Response.json({ data: 'an error with banking api occured', status: 400 });
+  if (!transactionsData.status && !transactionsData.data.hasOwnProperty('status_code')) {
+    req.log.error('an error with banking api occured', { code: '400', message: 'banking api error' });
+    return Response.json({ data: 'an error with banking api occured', status: 400 });
+  }
 
   if (!transactionsData.status && transactionsData.data.status_code === 401) {
     accessToken = await refreshTokenLogic({ refreshToken, id, supabase });
     if (!accessToken) {
+      req.log.error('no accessToken', { code: '400', message: 'an error with access token occured line 65' });
       return Response.json({ data: 'an error with access token occured', status: 400 });
     } else {
       transactionsData = await getAccountTransactions({ accountId: accountUuId, accessToken, dateFrom, dateTo });
       if (!transactionsData.status) {
+        req.log.error('an error with banking api occured on second try', { code: '400', message: 'banking api error' });
         return Response.json({ data: 'an error with banking api occured on second try', status: 400 });
       }
     }
@@ -62,27 +82,34 @@ export async function GET() {
   const { data: categories, error: categoriesError } = await supabase.from('transaction_categories').select(`*`).eq('category_name', 'Other');
   let categoryId = categories && categories.length > 0 && categories[0].id;
 
-  // prepare data for insertion
-  const dataToInsert = bookedTransactions.map((elem: any) => (
-    {
-      account_id: accountId,
-      booking_date: elem.bookingDate,
-      amount: Number(elem.transactionAmount.amount),
-      currency: elem.transactionAmount.currency,
-      internal_transaction_id: elem.internalTransactionId,
-      transaction_info: elem.remittanceInformationUnstructured,
-      transaction_type: elem.proprietaryBankTransactionCode,
-      category_id: categoryId,
+  if (bookedTransactions && bookedTransactions.length > 0) {
+    req.log.info('we got the transactions');
+
+    // prepare data for insertion
+    const dataToInsert = bookedTransactions.map((elem: any) => (
+      {
+        account_id: accountId,
+        booking_date: elem.bookingDate,
+        amount: Number(elem.transactionAmount.amount),
+        currency: elem.transactionAmount.currency,
+        internal_transaction_id: elem.internalTransactionId,
+        transaction_info: elem.remittanceInformationUnstructured,
+        transaction_type: elem.proprietaryBankTransactionCode,
+        category_id: categoryId,
+      }
+    ));
+
+    // insert data in db
+    const { data, error: insertTransactionsError } = await supabase
+      .from('account_transactions')
+      .insert(dataToInsert)
+      .select();
+
+    if (insertTransactionsError) {
+      req.log.error('insert transactions in db errored', { code: '400', message: 'db error' });
+      Response.json({ data: 'insert transaction in db errored', status: 400 });
     }
-  ));
-
-  // insert data in db
-  const { data, error: insertTransactionsError } = await supabase
-    .from('account_transactions')
-    .insert(dataToInsert)
-    .select();
-
-  if (insertTransactionsError) Response.json({ data: 'insert transaction in db errored', status: 400 });
+  }
 
   // refresh or create the totals
   const year_month_array = dateFrom.split('-');
@@ -126,5 +153,6 @@ export async function GET() {
 
   }
 
+  req.log.info('success cron');
   return Response.json({ data: 'success', status: 200 });
-}
+})
