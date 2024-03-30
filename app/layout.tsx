@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { ClerkProvider } from '@clerk/nextjs'
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Analytics } from '@vercel/analytics/react';
+import { AxiomWebVitals } from 'next-axiom';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +20,11 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning={true}>
-        <body className={inter.className} suppressHydrationWarning={true}>{children}</body>
+        <body className={inter.className} suppressHydrationWarning={true}>
+          {children}
+          <Analytics />
+          <AxiomWebVitals />
+        </body>
       </html>
     </ClerkProvider>
   );
