@@ -128,9 +128,9 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
   let outer, inner, totalExpenses;
   if (transactions && transactions.length > 0) {
 
-    outer = transactions?.filter((elem: any) => Number(elem.amount) < 0 && (elem.transaction_type !== "Transfer Home'Bank" && !elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin'))).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
+    outer = transactions?.filter((elem: any) => Number(elem.amount) < 0 && !(elem.transaction_type === "Transfer Home'Bank" && elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin'))).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
 
-    inner = transactions?.filter((elem: any) => Number(elem.amount) > 0 && (elem.transaction_type !== "Incoming funds" && !elem.transaction_info.includes('Ordering party: FLIP TECHNOLOGIES') && !elem.transaction_info.includes('Ordering party: Rauta Alexandru Alin'))).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
+    inner = transactions?.filter((elem: any) => Number(elem.amount) > 0 && !(elem.transaction_type === "Incoming funds" && elem.transaction_info.includes('Ordering party: FLIP TECHNOLOGIES') || elem.transaction_info.includes('Ordering party: Rauta Alexandru Alin'))).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
 
     totalExpenses = outer + inner;
 

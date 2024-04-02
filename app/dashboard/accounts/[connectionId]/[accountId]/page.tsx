@@ -6,6 +6,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatDateForApi } from "@/logic/retrieveTransactionsLogic";
 import { currency } from "@/constants/general";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import formatTransactionsPerCategory from "@/utils/transactions/formatTransactionsPerCategory";
 
 export default async function AccountPage({ params, searchParams }: { params: { accountId: string, connectionId: string }, searchParams: { year_month: string, section: 'expenses' | 'transactions' } }) {
 
@@ -36,22 +43,27 @@ export default async function AccountPage({ params, searchParams }: { params: { 
   }
 
   let transactions: any[] = [], outer, inner, totalExpenses;
+  // get transactions first because we need them both in expenses and transactions section
+  const date = new Date(year_month);
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = await formatDateForApi({ date: new Date(year, month, 1).toString() });
+  const lastDay = await formatDateForApi({ date: new Date(year, month + 1, 0).toString() });
+  const { data: transactionsDB, error: transactionsDBError } = await supabase.from('account_transactions').select(`*, transaction_categories(category_name)`).eq('account_id', accountId).gte('booking_date', firstDay).lte('booking_date', lastDay).order('booking_date', { ascending: false });
+  if (transactionsDB && transactionsDB.length > 0) {
+    transactions = [...transactionsDB];
+  }
+
+  const dataPerCategory = formatTransactionsPerCategory({ transactions });
+  const innerCategoriesData = dataPerCategory.inner.categories;
+  const outerCategoriesData = dataPerCategory.outer.categories;
+
   if (section === 'expenses') {
     const { data: expensesData, error: expensesError } = await supabase.from('expenses_totals').select('*').eq('year_month', year_month);
     if (expensesData && expensesData.length > 0) {
       outer = expensesData[0].outer;
       inner = expensesData[0].inner;
       totalExpenses = expensesData[0].total;
-    }
-  } else {
-    const date = new Date(year_month);
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = await formatDateForApi({ date: new Date(year, month, 1).toString() });
-    const lastDay = await formatDateForApi({ date: new Date(year, month + 1, 0).toString() });
-    const { data: transactionsDB, error: transactionsDBError } = await supabase.from('account_transactions').select(`*, transaction_categories(category_name)`).eq('account_id', accountId).gte('booking_date', firstDay).lte('booking_date', lastDay).order('booking_date', { ascending: false });
-    if (transactionsDB && transactionsDB.length > 0) {
-      transactions = [...transactionsDB];
     }
   }
 
@@ -82,9 +94,75 @@ export default async function AccountPage({ params, searchParams }: { params: { 
                   {
                     section === 'expenses' ?
                       <>
-                        <p>Outer transactions amount: {outer}{' '}{currency}</p>
-                        <p>Inner transactions amount: {inner}{' '}{currency}</p>
-                        <p>Total expenses amount: {totalExpenses}{' '}{currency}</p>
+                        <Accordion type="multiple">
+                          <AccordionItem value="item-1">
+                            <AccordionTrigger>Outer transactions amount: {outer}{' '}{currency}</AccordionTrigger>
+                            <AccordionContent>
+                              <div className="px-3">
+                                {Object.entries(outerCategoriesData).map((elem: [key: string, value: { total: number, transactions: any }], index: number) => (
+                                  <div className="mb-2" key={index}>
+                                    <p>{elem[0]}: {elem[1].total.toFixed(2)}{' '}{currency}</p>
+                                    <Accordion type="multiple">
+                                      <AccordionItem value={`transaction-${elem[0]}`}>
+                                        <AccordionTrigger>Transactions</AccordionTrigger>
+                                        <AccordionContent>
+                                          <div className="px-2">
+                                            {
+                                              elem[1].transactions.map((transaction: any) => (
+                                                <div key={transaction.id} className="flex items-center gap-x-3 mb-3 border-b border-gray-300 pb-3">
+                                                  <div className="w-[100px]">{transaction.booking_date}</div>
+                                                  <div className="w-[120px]">{transaction.amount}{' '}{transaction.currency}</div>
+                                                  <div className="w-[190px]">{transaction.transaction_type}</div>
+                                                  <div className="w-[110px]">{transaction.transaction_categories.category_name}</div>
+                                                  <div className="w-[600px] break-words">{transaction.transaction_info}</div>
+                                                  <Button variant="default" asChild className="flex-1"><Link href={`/dashboard/accounts/${connectionId}/${accountId}/${transaction.id}/edit`}>Edit</Link></Button>
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+                                    </Accordion>
+                                  </div>
+                                ))}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                          <AccordionItem value="item-2">
+                            <AccordionTrigger>Inner transactions amount: {inner}{' '}{currency}</AccordionTrigger>
+                            <AccordionContent>
+                              <div className="px-3">
+                                {Object.entries(innerCategoriesData).map((elem: [key: string, value: { total: number, transactions: any }], index: number) => (
+                                  <div className="mb-2" key={index}>
+                                    <p>{elem[0]}: {elem[1].total.toFixed(2)}{' '}{currency}</p>
+                                    <Accordion type="multiple">
+                                      <AccordionItem value={`transaction-${elem[0]}`}>
+                                        <AccordionTrigger>Transactions</AccordionTrigger>
+                                        <AccordionContent>
+                                          <div className="px-2">
+                                            {
+                                              elem[1].transactions.map((transaction: any) => (
+                                                <div key={transaction.id} className="flex items-center gap-x-3 mb-3 border-b border-gray-300 pb-3">
+                                                  <div className="w-[100px]">{transaction.booking_date}</div>
+                                                  <div className="w-[120px]">{transaction.amount}{' '}{transaction.currency}</div>
+                                                  <div className="w-[190px]">{transaction.transaction_type}</div>
+                                                  <div className="w-[110px]">{transaction.transaction_categories.category_name}</div>
+                                                  <div className="w-[600px] break-words">{transaction.transaction_info}</div>
+                                                  <Button variant="default" asChild className="flex-1"><Link href={`/dashboard/accounts/${connectionId}/${accountId}/${transaction.id}/edit`}>Edit</Link></Button>
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+                                    </Accordion>
+                                  </div>
+                                ))}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                          <AccordionItem value="item-3">
+                            <AccordionTrigger>Total expenses amount: {totalExpenses}{' '}{currency}</AccordionTrigger>
+                          </AccordionItem>
+                        </Accordion>
                       </>
                       : transactions && transactions.map(transaction => (
                         <div key={transaction.id} className="flex items-center gap-x-3 mb-3 border-b border-gray-300 pb-3">
