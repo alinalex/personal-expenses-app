@@ -61,17 +61,20 @@ export default async function AccountPage({ params, searchParams }: { params: { 
         {
           typeof year_month !== 'undefined' ?
             <div className="flex">
-              <div className="w-[100px]">
-                {
-                  yearMonthDdata && yearMonthDdata.map((elem, index) =>
-                    <div key={index}>
-                      <Link href={`/dashboard/accounts/${connectionId}/${accountId}?year_month=${elem.year_month}&section=${section}`} className={`cursor-pointer ${year_month === elem.year_month && 'text-green-400'}`}>{elem.year_month}</Link>
-                    </div>
-                  )
-                }
+              <div className="w-fit border-r pr-3 mr-3 border-gray-300">
+                <div className="border-b border-gray-300 pb-1 mb-3">Timeframe</div>
+                <div>
+                  {
+                    yearMonthDdata && yearMonthDdata.map((elem, index) =>
+                      <div key={index} className="mb-1">
+                        <Link href={`/dashboard/accounts/${connectionId}/${accountId}?year_month=${elem.year_month}&section=${section}`} className={`cursor-pointer ${year_month === elem.year_month && 'text-green-400'}`}>{elem.year_month}</Link>
+                      </div>
+                    )
+                  }
+                </div>
               </div>
               <div className="flex-1">
-                <div className="flex items-center justify-center mb-3">
+                <div className="flex items-center justify-center border-b border-gray-300 pb-1 mb-3">
                   <Link href={`/dashboard/accounts/${connectionId}/${accountId}?year_month=${year_month}&section=expenses`} className={`mr-3 ${section === 'expenses' && 'text-green-400'}`}>Expenses</Link>
                   <Link href={`/dashboard/accounts/${connectionId}/${accountId}?year_month=${year_month}&section=transactions`} className={`${section === 'transactions' && 'text-green-400'}`}>Transactions</Link>
                 </div>
@@ -84,11 +87,13 @@ export default async function AccountPage({ params, searchParams }: { params: { 
                         <p>Total expenses amount: {totalExpenses}{' '}{currency}</p>
                       </>
                       : transactions && transactions.map(transaction => (
-                        <div key={transaction.id} className="flex items-center gap-x-3">
-                          <p>{transaction.booking_date}</p>
-                          <p>{transaction.amount}{' '}{transaction.currency}</p>
-                          <p>{transaction.transaction_type}</p>
-                          <p>{transaction.transaction_categories.category_name}</p>
+                        <div key={transaction.id} className="flex items-center gap-x-3 mb-3 border-b border-gray-300 pb-3">
+                          <div className="w-[100px]">{transaction.booking_date}</div>
+                          <div className="w-[120px]">{transaction.amount}{' '}{transaction.currency}</div>
+                          <div className="w-[190px]">{transaction.transaction_type}</div>
+                          <div className="w-[110px]">{transaction.transaction_categories.category_name}</div>
+                          <div className="w-[600px] break-words">{transaction.transaction_info}</div>
+                          <Button variant="default" asChild className="flex-1"><Link href={`/dashboard/accounts/${connectionId}/${accountId}/${transaction.id}/edit`}>Edit</Link></Button>
                         </div>
                       ))
                   }
