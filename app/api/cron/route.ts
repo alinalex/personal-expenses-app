@@ -39,7 +39,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
   dateFrom = await formatDateForApi({ date: dateFrom.toString() });
 
   let dateTo: Date | string = new Date();
-  dateTo.setDate(dateTo.getDate() - 1);
+  // dateTo.setDate(dateTo.getDate() - 1);
   dateTo = await formatDateForApi({ date: dateTo.toString() });
 
   if (new Date(dateFrom) > new Date(dateTo)) {
@@ -75,12 +75,59 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 
   const bookedTransactions = transactionsData.data.transactions.booked;
 
-  // get through transactions and the rules for categories
-  // to do
-
   // get Other category in case we don't have a rule for a transaction
   const { data: categories, error: categoriesError } = await supabase.from('transaction_categories').select(`*`).eq('category_name', 'Other');
   let categoryId = categories && categories.length > 0 && categories[0].id;
+
+  // get through transactions and the rules for categories
+  const { data: transactionRules, error: transactionError } = await supabase
+    .from('category_rules')
+    .select('*');
+
+  let rulesData: any = {};
+  if (!transactionError && transactionRules && transactionRules.length > 0) {
+    for (let i = 0; i < bookedTransactions.length; i++) {
+      const transaction = bookedTransactions[i];
+      for (let j = 0; j < transactionRules.length; j++) {
+        const rule = transactionRules[j];
+        // transaction type do not match then continue to next rule
+        if (rule.transaction_type !== transaction.proprietaryBankTransactionCode) continue;
+
+        // transaction sign do not match then continue to next rule
+        const isPositive = Number(transaction.transactionAmount.amount) > 0;
+        if (rule.is_positive !== isPositive) continue;
+
+        // transaction type matches and other rules are null so stop looking
+        if (rule.includes === null && rule.not_includes === null && rule.bigger_than === null && rule.smaller_than === null) {
+          rulesData[transaction.internalTransactionId] = rule.category_id;
+        } else {
+          // check if rules that are not null match with transaction
+          if (rule.includes !== null && !transaction.remittanceInformationUnstructured.includes(rule.includes)) {
+            continue;
+          }
+
+          if (rule.not_includes !== null && transaction.remittanceInformationUnstructured.includes(rule.not_includes)) {
+            continue;
+          }
+
+          const amount = Number(transaction.transactionAmount.amount);
+          if (rule.bigger_than !== null && amount < rule.bigger_than) {
+            continue;
+          }
+
+          if (rule.smaller_than !== null && amount > rule.smaller_than) {
+            continue;
+          }
+
+          // if we got here then we got our match
+          rulesData[transaction.internalTransactionId] = rule.category_id;
+        }
+      }
+      if (!Object.hasOwn(rulesData, transaction.internalTransactionId)) {
+        rulesData[transaction.internalTransactionId] = categoryId;
+      }
+    }
+  }
 
   if (bookedTransactions && bookedTransactions.length > 0) {
     req.log.info('we got the transactions');
@@ -95,7 +142,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
         internal_transaction_id: elem.internalTransactionId,
         transaction_info: elem.remittanceInformationUnstructured,
         transaction_type: elem.proprietaryBankTransactionCode,
-        category_id: categoryId,
+        category_id: rulesData[elem.internalTransactionId] || categoryId,
       }
     ));
 
@@ -107,7 +154,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 
     if (insertTransactionsError) {
       req.log.error('insert transactions in db errored', { code: '400', message: 'db error' });
-      Response.json({ data: 'insert transaction in db errored', status: 400 });
+      return Response.json({ data: 'insert transaction in db errored', status: 400 });
     }
   }
 
