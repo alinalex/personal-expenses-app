@@ -13,6 +13,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import formatTransactionsPerCategory from "@/utils/transactions/formatTransactionsPerCategory";
+import DynamicExpenseChart from "@/components/transactions/DynamicExpenseChart";
 
 export default async function AccountPage({ params, searchParams }: { params: { accountId: string, connectionId: string }, searchParams: { year_month: string, section: 'expenses' | 'transactions' } }) {
 
@@ -42,7 +43,7 @@ export default async function AccountPage({ params, searchParams }: { params: { 
     redirect(`/dashboard/accounts/${connectionId}/${accountId}?year_month=${year_month}&section=expenses`);
   }
 
-  let transactions: any[] = [], outer, inner, totalExpenses;
+  let transactions: any[] = [], outer, inner, totalExpenses, totalExpensesWithoutInvestment;
   // get transactions first because we need them both in expenses and transactions section
   const date = new Date(year_month);
   const year = date.getFullYear();
@@ -57,6 +58,8 @@ export default async function AccountPage({ params, searchParams }: { params: { 
   const dataPerCategory = formatTransactionsPerCategory({ transactions });
   const innerCategoriesData = dataPerCategory.inner.categories;
   const outerCategoriesData = dataPerCategory.outer.categories;
+  const chartData = dataPerCategory.chartData;
+  const domain = dataPerCategory.domain;
 
   if (section === 'expenses') {
     const { data: expensesData, error: expensesError } = await supabase.from('expenses_totals').select('*').eq('year_month', year_month);
@@ -64,6 +67,7 @@ export default async function AccountPage({ params, searchParams }: { params: { 
       outer = expensesData[0].outer;
       inner = expensesData[0].inner;
       totalExpenses = expensesData[0].total;
+      totalExpensesWithoutInvestment = Object.hasOwn(dataPerCategory.outer.categories, 'Investment') ? (totalExpenses - dataPerCategory.outer.categories['Investment'].total).toFixed(2) : totalExpenses;
     }
   }
 
@@ -162,7 +166,11 @@ export default async function AccountPage({ params, searchParams }: { params: { 
                           <AccordionItem value="item-3">
                             <AccordionTrigger>Total expenses amount: {totalExpenses}{' '}{currency}</AccordionTrigger>
                           </AccordionItem>
+                          <AccordionItem value="item-4">
+                            <AccordionTrigger>Total expenses amount without investment: {totalExpensesWithoutInvestment}{' '}{currency}</AccordionTrigger>
+                          </AccordionItem>
                         </Accordion>
+                        <DynamicExpenseChart chartData={chartData} domain={domain} />
                       </>
                       : transactions && transactions.map(transaction => (
                         <div key={transaction.id} className="flex items-center gap-x-3 mb-3 border-b border-gray-300 pb-3">
