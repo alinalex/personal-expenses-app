@@ -15,7 +15,7 @@ export default async function getTokenRefreshed({ refreshToken }: { refreshToken
       body: JSON.stringify({ refresh: refreshToken })
     });
     const data = await res.json();
-    if (data.status_code !== 200) {
+    if (data.status_code && data.status_code !== 200) {
       refreshTokenData.status = false;
     }
     refreshTokenData.data = data;

@@ -5,7 +5,6 @@ export default function ExpensesChart({ chartData, domain }: { chartData: any[],
 
   const [chartHeight, setChartHeight] = useState(730);
   const renderCustomBarLabel = ({ payload, x, y, width, height, value, name }: { payload: any, x: any, y: any, width: any, height: any, value: any, name: any }) => {
-    console.log('height', height);
     const dy = height < 0 ? height - 7 : -7;
     // const nameDy = height < 0 ? height - 30 : height + 30;
     const nameDy = height < 0 ? height - 30 : (domain[0] === 0 ? height + 15 : height + 30);

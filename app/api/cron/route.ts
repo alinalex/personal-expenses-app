@@ -39,7 +39,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
   dateFrom = await formatDateForApi({ date: dateFrom.toString() });
 
   let dateTo: Date | string = new Date();
-  // dateTo.setDate(dateTo.getDate() - 1);
+  dateTo.setDate(dateTo.getDate() - 1);
   dateTo = await formatDateForApi({ date: dateTo.toString() });
 
   if (new Date(dateFrom) > new Date(dateTo)) {
@@ -48,12 +48,14 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
   }
 
   let { accessToken, refreshToken, id } = await retrieveAccessToken({ supabase });
+  req.log.info('accessToken db', accessToken);
   if (!accessToken) {
     req.log.error('no accessToken', { code: '400', message: 'an error with access token occured line 52' });
     return Response.json({ data: 'an error with access token occured', status: 400 });
   }
 
   let transactionsData = await getAccountTransactions({ accountId: accountUuId, accessToken, dateFrom, dateTo });
+  req.log.info('transactionsData initial', transactionsData);
   if (!transactionsData.status && !transactionsData.data.hasOwnProperty('status_code')) {
     req.log.error('an error with banking api occured', { code: '400', message: 'banking api error' });
     return Response.json({ data: 'an error with banking api occured', status: 400 });
@@ -61,6 +63,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 
   if (!transactionsData.status && transactionsData.data.status_code === 401) {
     accessToken = await refreshTokenLogic({ refreshToken, id, supabase });
+    req.log.info('accessToken refreshed', accessToken);
     if (!accessToken) {
       req.log.error('no accessToken', { code: '400', message: 'an error with access token occured line 65' });
       return Response.json({ data: 'an error with access token occured', status: 400 });
@@ -68,7 +71,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
       transactionsData = await getAccountTransactions({ accountId: accountUuId, accessToken, dateFrom, dateTo });
       if (!transactionsData.status) {
         req.log.error('an error with banking api occured on second try', { code: '400', message: 'banking api error' });
-        return Response.json({ data: 'an error with banking api occured on second try', status: 400 });
+        return Response.json({ data: 'an error with banking api occured on second try', status: 400, transactionsData });
       }
     }
   }
@@ -177,7 +180,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 
     outer = transactions?.filter((elem: any) => Number(elem.amount) < 0 && !(elem.transaction_type === "Transfer Home'Bank" && elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin'))).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
 
-    inner = transactions?.filter((elem: any) => Number(elem.amount) > 0 && !(elem.transaction_type === "Incoming funds" && elem.transaction_info.includes('Ordering party: FLIP TECHNOLOGIES') || elem.transaction_info.includes('Ordering party: Rauta Alexandru Alin'))).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
+    inner = transactions?.filter((elem: any) => Number(elem.amount) > 0 && !(elem.transaction_type === "Incoming funds" && elem.transaction_info.includes('Ordering party: FLIP TECHNOLOGIES') || elem.transaction_info.includes('Ordering party, FLIP TECHNOLOGIES') || elem.transaction_info.includes('Ordering party: Rauta Alexandru Alin') || elem.transaction_info.includes('Beneficiary, Rauta Alexandru Alin'))).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
 
     totalExpenses = outer + inner;
 

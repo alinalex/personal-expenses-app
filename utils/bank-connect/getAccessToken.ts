@@ -16,7 +16,7 @@ export default async function getAccessToken() {
       body: JSON.stringify({ secret_id: process.env.CARDLESS_SECRET_ID, secret_key: process.env.CARDLESS_SECRET_KEY })
     });
     const data = await res.json();
-    if (data.status_code !== 200) {
+    if (data.status_code && data.status_code !== 200) {
       accessTokenData.status = false;
     }
     accessTokenData.data = data;
