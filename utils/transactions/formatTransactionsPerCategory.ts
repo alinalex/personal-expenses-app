@@ -20,6 +20,9 @@ export default function formatTransactionsPerCategory({ transactions }: { transa
       if (element.transaction_type === 'Incoming funds' && (element.transaction_info.includes('Ordering party: Rauta Alexandru Alin') || element.transaction_info.includes('Beneficiary, Rauta Alexandru Alin') || element.transaction_info.includes('Ordering party: FLIP TECHNOLOGIES' || element.transaction_info.includes('Ordering party, FLIP TECHNOLOGIES')))) {
         continue;
       }
+      if (element.transaction_type === 'Incoming' && (element.transaction_info.includes('Ordering party: Rauta Raluca Ioana') || element.transaction_info.includes('Beneficiary, Rauta Raluca Ioana'))) {
+        continue;
+      }
     } else {
       if (element.transaction_type === `Transfer Home'Bank` && element.transaction_info.includes('Beneficiary: Rauta Alexandru Alin')) {
         continue;
