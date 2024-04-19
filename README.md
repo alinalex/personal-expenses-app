@@ -1,6 +1,6 @@
 ## Personal Expenses Project
 
-This project was born from my need to have all my personal credit card expenses in one place and to custmoize in any way I want the logic behind them.
+This project was born from my need to have all my personal credit card expenses in one place and to customise the experience the way I see fit by my needs.
 
 ## How to run the project
 
@@ -21,7 +21,7 @@ You have to create an account with [clerk](https://clerk.com/), [supabase](https
 
 Also, I used [axiom](https://axiom.co/) for logging, so you should also create an account to have all the logging in the same place.
 
-## DATABASE TABLES DEFINITION
+## Database tables definition
 
 **access_tokens**
 ```
