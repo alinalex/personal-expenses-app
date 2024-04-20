@@ -185,8 +185,11 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
       elem.transaction_info.includes('Ordering party: FLIP TECHNOLOGIES') ||
       elem.transaction_info.includes('Ordering party, FLIP TECHNOLOGIES') ||
       elem.transaction_info.includes('Ordering party: Rauta Alexandru Alin') ||
-      elem.transaction_info.includes('Beneficiary, Rauta Alexandru Alin'))
-      && !(elem.transaction_type === "Incoming" && elem.transaction_info.includes('Ordering party: Rauta Raluca Ioana') || elem.transaction_info.includes('Ordering party, Rauta Raluca Ioana'))
+      elem.transaction_info.includes('Beneficiary, Rauta Alexandru Alin') ||
+      elem.transaction_info.includes('Ordering party: Rauta Raluca Ioana') ||
+      elem.transaction_info.includes('Ordering party, Rauta Raluca Ioana')
+    )
+      // && !(elem.transaction_type === "Incoming" && elem.transaction_info.includes('Ordering party: Rauta Raluca Ioana') || elem.transaction_info.includes('Ordering party, Rauta Raluca Ioana'))
     ).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
 
     totalExpenses = outer + inner;
