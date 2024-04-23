@@ -76,6 +76,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
     }
   }
 
+
   const bookedTransactions = transactionsData.data.transactions.booked;
 
   // get Other category in case we don't have a rule for a transaction
@@ -177,8 +178,9 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 
   let outer, inner, totalExpenses;
   if (transactions && transactions.length > 0) {
+    req.log.info('prepare totals');
 
-    outer = transactions?.filter((elem: any) => Number(elem.amount) < 0 && !(elem.transaction_type === "Transfer Home'Bank" && elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin'))).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
+    outer = transactions?.filter((elem: any) => Number(elem.amount) < 0 && !(elem.transaction_type === "Transfer Home'Bank" && elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin')) && elem.transaction_type !== 'Deposit creation').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
 
     inner = transactions?.filter((elem: any) => Number(elem.amount) > 0 && !(
       elem.transaction_type === "Incoming funds" &&
@@ -188,11 +190,13 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
       elem.transaction_info.includes('Beneficiary, Rauta Alexandru Alin') ||
       elem.transaction_info.includes('Ordering party: Rauta Raluca Ioana') ||
       elem.transaction_info.includes('Ordering party, Rauta Raluca Ioana')
-    )
-      // && !(elem.transaction_type === "Incoming" && elem.transaction_info.includes('Ordering party: Rauta Raluca Ioana') || elem.transaction_info.includes('Ordering party, Rauta Raluca Ioana'))
-    ).map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
+    ) && elem.transaction_type !== 'Deposit closing').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
 
     totalExpenses = outer + inner;
+
+    req.log.info(`outer: ${outer}`);
+    req.log.info(`inner: ${inner}`);
+    req.log.info(`totalExpenses: ${totalExpenses}`);
 
     if (totalsData && totalsData.length > 0) {
       const expensesTotalsId = totalsData[0].id;

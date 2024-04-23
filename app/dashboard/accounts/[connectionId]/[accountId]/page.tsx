@@ -55,6 +55,24 @@ export default async function AccountPage({ params, searchParams }: { params: { 
     transactions = [...transactionsDB];
   }
 
+
+  // const outerTest = transactions?.filter((elem: any) => Number(elem.amount) < 0 && !(elem.transaction_type === "Transfer Home'Bank" && elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin')) && elem.transaction_type !== 'Deposit creation').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
+
+  // const innerTest = transactions?.filter((elem: any) => Number(elem.amount) > 0 && !(
+  //   elem.transaction_type === "Incoming funds" &&
+  //   elem.transaction_info.includes('Ordering party: FLIP TECHNOLOGIES') ||
+  //   elem.transaction_info.includes('Ordering party, FLIP TECHNOLOGIES') ||
+  //   elem.transaction_info.includes('Ordering party: Rauta Alexandru Alin') ||
+  //   elem.transaction_info.includes('Beneficiary, Rauta Alexandru Alin') ||
+  //   elem.transaction_info.includes('Ordering party: Rauta Raluca Ioana') ||
+  //   elem.transaction_info.includes('Ordering party, Rauta Raluca Ioana')
+  // ) && elem.transaction_type !== 'Deposit closing').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
+
+  // const totalExpensesTest = outerTest + innerTest;
+  // console.log('innerTest', innerTest.toFixed(2));
+  // console.log('outerTest', outerTest.toFixed(2));
+  // console.log('totalExpensesTest', totalExpensesTest.toFixed(2));
+
   const dataPerCategory = formatTransactionsPerCategory({ transactions });
   const innerCategoriesData = dataPerCategory.inner.categories;
   const outerCategoriesData = dataPerCategory.outer.categories;
