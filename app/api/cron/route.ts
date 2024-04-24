@@ -76,7 +76,6 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
     }
   }
 
-
   const bookedTransactions = transactionsData.data.transactions.booked;
 
   // get Other category in case we don't have a rule for a transaction
@@ -89,6 +88,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
     .select('*');
 
   let rulesData: any = {};
+
   if (!transactionError && transactionRules && transactionRules.length > 0) {
     for (let i = 0; i < bookedTransactions.length; i++) {
       const transaction = bookedTransactions[i];
@@ -177,6 +177,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
   const { data: transactions, error: transactionsError } = await supabase.from('account_transactions').select(`*, transaction_categories(category_name)`).eq('account_id', accountId).gte('booking_date', firstDay).lte('booking_date', lastDay);
 
   let outer, inner, totalExpenses;
+
   if (transactions && transactions.length > 0) {
     req.log.info('prepare totals');
 
