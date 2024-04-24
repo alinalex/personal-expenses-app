@@ -256,4 +256,4 @@ client.defineJob({
     await io.logger.info('success cron');
     return { success: true, status: 200 };
   },
-});
+}); 
