@@ -66,7 +66,7 @@ export default async function createRequisitionLogic({ countryCode, bankId, supa
   const { data: connectionData, error } = await supabase
     .from('bank_connections')
     .insert([
-      { 'user_id': userId, 'bank_id': bankId, 'country_code': countryCode, 'requisition_id': reqId, 'bank_name': bankName, 'oauth_link': reqLink, 'bank_logo': bankLogo, 'isDone': false },
+      { 'user_id': userId, 'bank_id': bankId, 'country_code': countryCode, 'requisition_id': reqId, 'bank_name': bankName, 'oauth_link': reqLink, 'bank_logo': bankLogo, 'isDone': false, 'isExpired': false },
     ])
     .select();
 

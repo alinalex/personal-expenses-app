@@ -88,6 +88,18 @@ client.defineJob({
     }
 
     if (!transactionsData.status && transactionsData.data.status_code === 401) {
+      // update isExpired flag
+      if (transactionsData.data.type && transactionsData.data.type === 'AccessExpiredError') {
+        const bank_connection_id = bankAccounts[0].bank_connection_id;
+        const { data: expiredData, error: expiredError } = await io.supabase.runTask("update-isExpired-flag", async (db) => {
+          return db.from('bank_connections').update({ isExpired: true })
+            .eq('id', bank_connection_id)
+            .select();
+        });
+        expiredData && await io.logger.info('bank_connections update', expiredData);
+        await io.logger.error('access to banking data expired', { code: '400', message: 'access to banking data expired' });
+        return errorResponse;
+      }
       accessToken = await io.supabase.runTask("get-refresh-token", async (db) => {
         return await refreshTokenLogic({ refreshToken, id, supabase: db });
       });

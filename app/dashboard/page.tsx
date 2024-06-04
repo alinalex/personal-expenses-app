@@ -25,7 +25,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { ref:
     }
   }
 
-  const { data: bankConnections, error: bankConnectionsError } = await supabase.from('bank_connections').select(`id, bank_logo, bank_name, country_code, isDone, oauth_link, bank_accounts(*)`).eq('user_id', userId);
+  const { data: bankConnections, error: bankConnectionsError } = await supabase.from('bank_connections').select(`id, bank_logo, bank_name, country_code, isDone, oauth_link, isExpired, bank_accounts(*)`).eq('user_id', userId);
 
   return (
     <section className="w-full min-h-screen h-full">
@@ -44,10 +44,13 @@ export default async function Dashboard({ searchParams }: { searchParams: { ref:
                       </div>
                       <div>
                         {
+                          bank.isExpired && <Button asChild><Link href={`/dashboard/reconnect/${bank.id}`}>Reconnect account</Link></Button>
+                        }
+                        {
                           !bank.isDone ?
-                            <Button asChild><Link href={bank.oauth_link}>Continue connection</Link></Button> : (
+                            <Button asChild className="ml-3"><Link href={bank.oauth_link}>Continue connection</Link></Button> : (
                               bank.bank_accounts.length > 0 ?
-                                <Button asChild><Link href={`/dashboard/accounts/${bank.id}`}>View accounts</Link></Button> : <Button asChild><Link href={`/dashboard/connect/accounts/${bank.id}`}>Retrieve accounts for this connections</Link></Button>
+                                <Button asChild className="ml-3"><Link href={`/dashboard/accounts/${bank.id}`}>View accounts</Link></Button> : <Button asChild className="ml-3"><Link href={`/dashboard/connect/accounts/${bank.id}`}>Retrieve accounts for this connections</Link></Button>
                             )
                         }
                         <Button variant={'destructive'} className="ml-3">Delete connection</Button>
