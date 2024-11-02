@@ -5,6 +5,7 @@ import getAccountTransactions from '@/utils/bank-connect/getAccountTransactions'
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
 import { withAxiom, AxiomRequest } from 'next-axiom';
+import {NextResponse} from "next/server";
 
 export const GET = withAxiom(async (req: AxiomRequest) => {
   const cookieStore = cookies();
@@ -17,7 +18,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 
   if (bankAccountsError || (bankAccounts && bankAccounts.length === 0)) {
     req.log.error('no bank accounts', { code: '400', message: bankAccountsError });
-    return Response.json({ data: null, status: 400 });
+    return NextResponse.json({ data: null, status: 400 });
   }
 
   // get last day of bank transactions
@@ -29,7 +30,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 
   if (accountTransactionsError || (accountTransactions && accountTransactions.length === 0)) {
     req.log.error('no account transactions', { code: '400', message: accountTransactionsError });
-    return Response.json({ data: null, status: 400 });
+    return NextResponse.json({ data: null, status: 400 });
   }
 
   // get transactions
@@ -44,21 +45,21 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 
   if (new Date(dateFrom) > new Date(dateTo)) {
     req.log.error(`date from (${dateFrom}) is bigger than date to (${dateTo})`, { code: '400', message: 'date error' });
-    return Response.json({ data: 'already have the data', status: 400 });
+    return NextResponse.json({ data: 'already have the data', status: 400 });
   }
 
   let { accessToken, refreshToken, id } = await retrieveAccessToken({ supabase });
   req.log.info('accessToken db', accessToken);
   if (!accessToken) {
     req.log.error('no accessToken', { code: '400', message: 'an error with access token occured line 52' });
-    return Response.json({ data: 'an error with access token occured', status: 400 });
+    return NextResponse.json({ data: 'an error with access token occured', status: 400 });
   }
 
   let transactionsData = await getAccountTransactions({ accountId: accountUuId, accessToken, dateFrom, dateTo });
   req.log.info('transactionsData initial', transactionsData);
   if (!transactionsData.status && !transactionsData.data.hasOwnProperty('status_code')) {
     req.log.error('an error with banking api occured', { code: '400', message: 'banking api error' });
-    return Response.json({ data: 'an error with banking api occured', status: 400 });
+    return NextResponse.json({ data: 'an error with banking api occured', status: 400 });
   }
 
   if (!transactionsData.status && transactionsData.data.status_code === 401) {
@@ -66,12 +67,12 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
     req.log.info('accessToken refreshed', accessToken);
     if (!accessToken) {
       req.log.error('no accessToken', { code: '400', message: 'an error with access token occured line 65' });
-      return Response.json({ data: 'an error with access token occured', status: 400 });
+      return NextResponse.json({ data: 'an error with access token occured', status: 400 });
     } else {
       transactionsData = await getAccountTransactions({ accountId: accountUuId, accessToken, dateFrom, dateTo });
       if (!transactionsData.status) {
         req.log.error('an error with banking api occured on second try', { code: '400', message: 'banking api error' });
-        return Response.json({ data: 'an error with banking api occured on second try', status: 400, transactionsData });
+        return NextResponse.json({ data: 'an error with banking api occured on second try', status: 400, transactionsData });
       }
     }
   }
@@ -158,7 +159,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 
     if (insertTransactionsError) {
       req.log.error('insert transactions in db errored', { code: '400', message: 'db error' });
-      return Response.json({ data: 'insert transaction in db errored', status: 400 });
+      return NextResponse.json({ data: 'insert transaction in db errored', status: 400 });
     }
   }
 
@@ -181,14 +182,20 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
   if (transactions && transactions.length > 0) {
     req.log.info('prepare totals');
 
-    outer = transactions?.filter((elem: any) => Number(elem.amount) < 0 && !(elem.transaction_type === "Transfer Home'Bank" && elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin')) && elem.transaction_type !== 'Deposit creation').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
+    outer = transactions?.filter((elem: any) => Number(elem.amount) < 0 && !(
+        elem.transaction_type === "Transfer Home'Bank" &&
+        elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin') ||
+        elem.transaction_info.includes('Beneficiary, Rauta Alexandru Alin')
+        ) && elem.transaction_type !== 'Deposit creation').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
 
     inner = transactions?.filter((elem: any) => Number(elem.amount) > 0 && !(
       elem.transaction_type === "Incoming funds" &&
       elem.transaction_info.includes('Ordering party: FLIP TECHNOLOGIES') ||
       elem.transaction_info.includes('Ordering party, FLIP TECHNOLOGIES') ||
       elem.transaction_info.includes('Ordering party: Rauta Alexandru Alin') ||
+      elem.transaction_info.includes('Ordering party, Rauta Alexandru Alin') ||
       elem.transaction_info.includes('Beneficiary, Rauta Alexandru Alin') ||
+      elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin') ||
       elem.transaction_info.includes('Ordering party: Rauta Raluca Ioana') ||
       elem.transaction_info.includes('Ordering party, Rauta Raluca Ioana')
     ) && elem.transaction_type !== 'Deposit closing').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
@@ -219,5 +226,5 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
   }
 
   req.log.info('success cron');
-  return Response.json({ data: 'success', status: 200 });
+  return NextResponse.json({ data: 'success', status: 200 });
 })
