@@ -79,7 +79,7 @@ client.defineJob({
     }
 
     let transactionsData = await io.runTask("get-bank-transactions", async () => {
-      return await getAccountTransactions({ accountId: accountUuId, accessToken, dateFrom, dateTo });
+      return await getAccountTransactions({ accountId: accountUuId, accessToken, dateFrom: dateFrom as string, dateTo: dateTo as string });
     });
     await io.logger.info('transactionsData initial', transactionsData);
     if (!transactionsData.status && !transactionsData.data.hasOwnProperty('status_code')) {
@@ -227,14 +227,20 @@ client.defineJob({
     if (transactions && transactions.length > 0) {
       await io.logger.info('prepare totals');
 
-      outer = transactions?.filter((elem: any) => Number(elem.amount) < 0 && !(elem.transaction_type === "Transfer Home'Bank" && elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin')) && elem.transaction_type !== 'Deposit creation').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
+      outer = transactions?.filter((elem: any) => Number(elem.amount) < 0 && !(
+          elem.transaction_type === "Transfer Home'Bank" &&
+          elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin') ||
+          elem.transaction_info.includes('Beneficiary, Rauta Alexandru Alin')
+      ) && elem.transaction_type !== 'Deposit creation').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
 
       inner = transactions?.filter((elem: any) => Number(elem.amount) > 0 && !(
         elem.transaction_type === "Incoming funds" &&
         elem.transaction_info.includes('Ordering party: FLIP TECHNOLOGIES') ||
         elem.transaction_info.includes('Ordering party, FLIP TECHNOLOGIES') ||
         elem.transaction_info.includes('Ordering party: Rauta Alexandru Alin') ||
+        elem.transaction_info.includes('Ordering party, Rauta Alexandru Alin') ||
         elem.transaction_info.includes('Beneficiary, Rauta Alexandru Alin') ||
+        elem.transaction_info.includes('Beneficiary: Rauta Alexandru Alin') ||
         elem.transaction_info.includes('Ordering party: Rauta Raluca Ioana') ||
         elem.transaction_info.includes('Ordering party, Rauta Raluca Ioana')
       ) && elem.transaction_type !== 'Deposit closing').map((elem: any) => Number(elem.amount)).reduce((a: number, b: number) => a + b, 0);
