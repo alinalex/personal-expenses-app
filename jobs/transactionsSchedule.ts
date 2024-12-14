@@ -87,9 +87,9 @@ client.defineJob({
       return errorResponse;
     }
 
-    if (!transactionsData.status && transactionsData.data.status_code === 401) {
+    if (!transactionsData.status && [400, 401].includes(transactionsData.data.status_code)) {
       // update isExpired flag
-      if (transactionsData.data.type && transactionsData.data.type === 'AccessExpiredError') {
+      if ( (transactionsData.data.type && transactionsData.data.type === 'AccessExpiredError') || (transactionsData.data.summary && transactionsData.data.summary.includes('has expired'))) {
         const bank_connection_id = bankAccounts[0].bank_connection_id;
         const { data: expiredData, error: expiredError } = await io.supabase.runTask("update-isExpired-flag", async (db) => {
           return db.from('bank_connections').update({ isExpired: true })
