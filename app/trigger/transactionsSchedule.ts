@@ -59,14 +59,14 @@ export const transactionsSchedule = schedules.task({
     }
 
     let { accessToken, refreshToken, id } = await retrieveAccessToken({ supabase });
-    logger.info('accessToken db', accessToken);
+    logger.info('accessToken db', {accessToken});
     if (!accessToken) {
       logger.error('no accessToken', { code: '400', message: 'an error with access token occured line 52' });
       return errorResponse;
     }
 
     let transactionsData = await getAccountTransactions({ accountId: accountUuId, accessToken, dateFrom, dateTo });
-    logger.info('transactionsData initial', transactionsData);
+    logger.info('transactionsData initial', {transactionsData});
     if (!transactionsData.status && !transactionsData.data.hasOwnProperty('status_code')) {
       logger.error('an error with banking api occured', { code: '400', message: 'banking api error' });
       return errorResponse;
@@ -84,7 +84,7 @@ export const transactionsSchedule = schedules.task({
         return errorResponse;
       }
       accessToken = await refreshTokenLogic({ refreshToken, id, supabase });
-      logger.info('accessToken refreshed', accessToken);
+      logger.info('accessToken refreshed', {accessToken});
       if (!accessToken) {
         logger.error('no accessToken', { code: '400', message: 'an error with access token occured line 65' });
         return errorResponse;
@@ -221,9 +221,9 @@ export const transactionsSchedule = schedules.task({
 
       totalExpenses = outer + inner;
 
-      logger.info(`outer: ${outer}`);
-      logger.info(`inner: ${inner}`);
-      logger.info(`totalExpenses: ${totalExpenses}`);
+      logger.info('outer', {outer});
+      logger.info('inner', {inner});
+      logger.info('totalExpenses', {totalExpenses});
 
       if (totalsData && totalsData.length > 0) {
         const expensesTotalsId = totalsData[0].id;
